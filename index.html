@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Card Reader Agent</title>
+    <link rel="stylesheet" href="stylesheet.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://getbootstrap.com/docs/5.3/assets/css/docs.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
+    <!-- <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script> -->
+    <script>
+        function readThaiIdCard() {
+            document.getElementById("read-citizen-card").innerText = "Reading...";
+            fetch("http://192.168.251.30:7121/thaiid/read.json", {
+                method: "POST",
+                headers: {
+                    "Access-Control-Request-Method": "POST",
+                    "Origin": "http://localhost",
+                    "Access-Control-Request-Headers": "Content-Type"
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("read-citizen-card").innerText = "Read Citizen";
+                    document.getElementById("citizenNo").value = data.CitizenNo;
+                    document.getElementById("fullNameTh").value = data.TitleNameTh + " " + data.FirstNameTh + " " + data.LastNameTh;
+                    document.getElementById("fullNameEn").value = data.TitleNameEn + " " + data.FirstNameEn + " " + data.LastNameEn;
+                    document.getElementById("birthDate").value = data.BirthDate;
+                    document.getElementById("gender").value = data.Gender;
+                    document.getElementById("issueDate").value = data.IssueDate;
+                    document.getElementById("expiryDate").value = data.ExpiryDate;
+                    document.getElementById("laserId").value = data.Laser;
+                    document.getElementById("chipNo").value = data.ChipNo;
+                    document.getElementById("bp1No").value = data.Bp1No;
+
+                    document.getElementById("address").value = data.HomeNo + " " + data.Road + " " + data.Tumbol + " " + data.Amphur + " " + data.Province;
+                    if (data.Photo) {
+                        document.getElementById("photo").src = "data:image/jpeg;base64," + data.Photo;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById("read-citizen-card").innerText = "Read Citizen";
+                    alert("Failed: " + error);
+                });
+        }
+
+        function readPassport() {
+
+            let passportNum = document.getElementById("passportNumberControl").value;
+            let birthdate = document.getElementById("birthdateControl").value;
+            let expirydate = document.getElementById("expiryDateControl").value;
+
+            let isValid = true;
+
+            if (validatePassport(passportNum)) {
+                setValidationState("passportNumberControl", isValid);
+            } else {
+                setValidationState("passportNumberControl", false);
+            }
+
+            if (validateDate(birthdate, "bd")) {
+                setValidationState("birthdateControl", true);
+            } else {
+                setValidationState("birthdateControl", false);
+            }
+
+            if (validateDate(expirydate, "exd")) {
+                setValidationState("expiryDateControl", true);
+            } else {
+                setValidationState("expiryDateControl", false);
+            }
+
+            if (validatePassport(passportNum) && validateDate(birthdate, "bd") && validateDate(expirydate, "exd")) {
+                document.getElementById("statusRead").innerText = "Reading...";
+                fetch("http://192.168.251.30:7121/passport/read.json", {
+                    method: "POST",
+                    headers: {
+                        "Access-Control-Request-Method": "POST",
+                        "Origin": "http://localhost",
+                        "Access-Control-Request-Headers": "Content-Type",
+                    },
+                    body: JSON.stringify({
+                        passport: passportNum,
+                        birthdate: formatDateYYMMDD(birthdate),
+                        expirydate: formatDateYYMMDD(expirydate)
+                    }),
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById("statusRead").innerText = "Read Passport";
+                        document.getElementById("passport-box-info").style.display = 'block';
+                        document.getElementById("passportForm").style.display = 'none';
+                        document.getElementById("citizen-box").style.display = 'none';
+                        document.getElementById("videoContainer").style.display = 'none';
+                        document.getElementById("scanMRZ").style.display = 'none';
+                        document.getElementById("passportType").value = data.PassportType;
+                        document.getElementById("passportContry").value = data.Country;
+                        document.getElementById("passportNo").value = data.PassportNo;
+                        document.getElementById("passportFullName").value = data.FirstNameEn + " " + data.LastNameEn;
+                        document.getElementById("passportNationality").value = data.Nationality;
+                        document.getElementById("passportBirthdate").value = data.BirthDate;
+                        document.getElementById("passportPersonalId").value = data.CitizenNo;
+                        document.getElementById("passportGender").value = data.Gender;
+                        document.getElementById("passportPlaceOfBirth").value = data.PlaceOfBirth;
+                        document.getElementById("passportIssueDate").value = data.IssueDate;
+                        document.getElementById("passportExpiryDate").value = data.ExpiryDate;
+                        document.getElementById("passportIssuAuth").value = data.IssueAuth;
+                        document.getElementById("passportTitleName").value = data.TitleName;
+                        document.getElementById("passportTagPresence").value = data.TagPresenceList;
+                        document.getElementById("passportTag").value = data.Tag;
+                        document.getElementById("proofOfCitizenship").value = data.ProofOfCitizenship;
+                        document.getElementById("profession").value = data.Profession;
+                        document.getElementById("personalSummary").value = data.PersonalSummary;
+                        document.getElementById("permanentAddress").value = data.PermanentAddress;
+                        document.getElementById("otherValidTDNNumber").value = data.OtherValidTDNNumber;
+                        document.getElementById("otherName").value = data.OtherName;
+                        document.getElementById("nameOfHolder").value = data.NameOfHolder;
+                        document.getElementById("customadyInfomation").value = data.CustodyInformation;
+                        document.getElementById("passportTelephone").value = data.Telephone;
+
+                        if (data.FaceImage) {
+                            document.getElementById("faceImage").src = "data:image/jpeg;base64," + data.FaceImage;
+                        }
+                        if (data.SignImage) {
+                            document.getElementById("signImage").src = "data:image/jpeg;base64," + data.SignImage;
+                        }
+                    })
+                    .catch(error => {
+                        alert("Failed: " + error);
+                        document.getElementById("statusRead").innerText = "Read Passport";
+                        // document.getElementById("status").innerText = "Failed: " + error;
+                    });
+            }
+        }
+
+        function formatDateYYMMDD(dateString) {
+            const date = new Date(dateString);
+            const year = String(date.getFullYear() % 100).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}${month}${day}`;
+        }
+
+        function setValidationState(inputId, isValid) {
+            let inputElement = document.getElementById(inputId);
+
+            if (isValid) {
+                inputElement.classList.add("is-valid");
+                inputElement.classList.remove("is-invalid");
+            } else {
+                inputElement.classList.add("is-invalid");
+                inputElement.classList.remove("is-valid");
+            }
+        }
+
+        function validatePassport(passport) {
+            const passportPattern = /^[A-Z0-9]{9,9}$/;
+            return typeof passport === 'string' && passportPattern.test(passport);
+        }
+
+        function validateDate(dateString, type) {
+
+            const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+            if (!datePattern.test(dateString)) return false;
+
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return false;
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (type === "bd") {
+                return date < today;
+            } else if (type === "exd") {
+                return true;
+            }
+
+            return false;
+        }
+
+        function citizen() {
+            document.getElementById("header-passport").style.color = 'grey';
+            document.getElementById("header-citizen").style.color = 'black';
+            document.getElementById("citizen-box").style.display = 'block';
+            document.getElementById("passportForm").style.display = 'none';
+            document.getElementById("passport-box-info").style.display = 'none';
+            document.getElementById("videoContainer").style.display = 'none';
+            document.getElementById("scanMRZ").style.display = 'none';
+        }
+
+        function ePassport() {
+            stopCamera()
+            document.getElementById("header-passport").style.color = 'black';
+            document.getElementById("header-citizen").style.color = 'grey';
+            document.getElementById("passportForm").style.display = 'block';
+            document.getElementById("citizen-box").style.display = 'none';
+            document.getElementById("passport-box-info").style.display = 'none';
+            document.getElementById("videoContainer").style.display = 'none';
+            document.getElementById("scanMRZ").style.display = 'block';
+        }
+
+        function backToReadPassport() {
+            document.getElementById("statusRead").innerText = "Read Passport";
+            document.getElementById("passportForm").style.display = 'block';
+            document.getElementById("passport-box-info").style.display = 'none';
+            document.getElementById("videoContainer").style.display = 'none';
+            document.getElementById("scanMRZ").style.display = 'block';
+        }
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <div style="display: flex; justify-content: space-evenly;  padding: 10px;">
+            <button class="btn" id="btn-header-passport" onclick="ePassport()">
+                <header id="header-passport">Passport Info</header>
+            </button>
+            <button class="btn" id="btn-header-citizen" onclick="citizen()">
+                <header id="header-citizen" style="color: gray;">Citizen Card</header>
+            </button>
+        </div>
+        <button type='button' onclick="startCamera()" class="btn btn-outline-primary" id="scanMRZ">
+            <span id="statusScan">Scan MRZ</span>
+            <i class="uil-camera"></i>
+        </button>
+        <div class="video-container" id="videoContainer" style="display: none;">
+            <video id="video" playsinline autoplay muted></video>
+            <div id="mrzFrame" class="mrz-frame"></div>
+        </div>
+        <canvas id="canvas" width="400" height="300" style="display:none;"></canvas>
+        <canvas id="cropCanvas" width="400" height="60" style="display:none;"></canvas>
+        <form id="passportForm" novalidate>
+            <div class="form first">
+                <div class="fields">
+                    <div class="input-field">
+                        <label for="passportNumberControl">Passport No.</label>
+                        <input type="text" class="form-control" id="passportNumberControl" placeholder="Passport No."
+                            required>
+                    </div>
+                    <div class="input-field">
+                        <label for="birthdateControl">Date of birth</label>
+                        <input type="date" class="form-control" id="birthdateControl" required>
+                    </div>
+                    <div class="input-field">
+                        <label for="expiryDateControl">Date of Expiry</label>
+                        <input type="date" class="form-control" id="expiryDateControl" placeholder="Passport No."
+                            required>
+                    </div>
+                    <div> <!--style="width: 100%; display: flex; justify-content: center;"-->
+                        <button type='button' onclick="readPassport()" class="btn btn-outline-primary"
+                            id="readEPassport">
+                            <span id="statusRead">Read Passport</span>
+                            <i class="uil uil-book"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <div id="passport-box-info" style="display: none;">
+            <form action="#" class="box-info">
+                <div class="form first">
+                    <div class="details personal">
+                        <div class="fields">
+                            <div class="input-field">
+                                <div style="display: flex; justify-content: space-evenly;">
+                                    <img id="faceImage" class="photo" width="100" height="120" alt="ID Photo"
+                                        src="image.png">
+                                </div>
+                            </div>
+                            <div class="input-field">
+                                <label>Type</label>
+                                <input type="text" id="passportType" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Country</label>
+                                <input type="text" id="passportContry" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Passport No.</label>
+                                <input type="text" id="passportNo" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Gender</label>
+                                <input type="text" id="passportGender" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Title Name</label>
+                                <input type="text" id="passportTitleName" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Full Name</label>
+                                <input type="text" id="passportFullName" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Nationality</label>
+                                <input type="text" id="passportNationality" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Date of Birth</label>
+                                <input type="text" id="passportBirthdate" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Identification No.</label>
+                                <input type="text" id="passportPersonalId" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Place of Birth</label>
+                                <input type="text" id="passportPlaceOfBirth" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Date of Issue</label>
+                                <input type="text" id="passportIssueDate" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Date of Expiry</label>
+                                <input type="text" id="passportExpiryDate" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Issuing Authority</label>
+                                <input type="text" id="passportIssuAuth" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Telephone</label>
+                                <input type="text" id="passportTelephone" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Tag Presence List</label>
+                                <input type="text" id="passportTagPresence" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Tag</label>
+                                <input type="text" id="passportTag" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Proof of Citizenship</label>
+                                <input type="text" id="proofOfCitizenship" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Profession</label>
+                                <input type="text" id="profession" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Personal Summary</label>
+                                <input type="text" id="personalSummary" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Permanent Address</label>
+                                <input type="text" id="permanentAddress" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Other Valid TDN Numbers</label>
+                                <input type="text" id="otherValidTDNNumber" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Other Names</label>
+                                <input type="text" id="otherName" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Name of Holder</label>
+                                <input type="text" id="nameOfHolder" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Customady Information</label>
+                                <input type="text" id="customadyInfomation" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Holder's Signature</label>
+                                <img id="signImage" class="photo-sign" alt="ID Photo" src="sign.png">
+                            </div>
+                            <div class="input-field">
+
+                            </div>
+                            <div class="input-field">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            <button class="btn btn-outline-primary" type="button" onclick="backToReadPassport()">
+                <i class="uil uil-arrow-left"></i>
+                <span>Back</span>
+            </button>
+        </div>
+
+        <div id="citizen-box" style="display: none;">
+            <form action="#" class="box-info">
+                <div id="citizen-btn-read"
+                    style="display: flex; flex-direction: column; text-align: center; align-items: center;">
+                    <button class="btn btn-primary" onclick="readThaiIdCard()" type="button" style="width: fit-content;"
+                        id="read-citizen-card">Read Citizen Card</button>
+                </div>
+                <div class="form first">
+                    <div class="details personal">
+                        <div class="fields" id="citizen-info">
+                            <div class="input-field">
+                                <div style="display: flex; justify-content: space-evenly;">
+                                    <img id="photo" class="photo" width="120" height="120" alt="ID Photo"
+                                        src="image.png">
+                                </div>
+                            </div>
+                            <div class="input-field">
+                                <label>BP1 No.</label>
+                                <input type="text" id="bp1No" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Chip No.</label>
+                                <input type="text" id="chipNo" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Laser ID.</label>
+                                <input type="text" id="laserId" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Citizen No.</label>
+                                <input type="text" id="citizenNo" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Full Name (TH)</label>
+                                <input type="text" id="fullNameTh" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Full Name (EN)</label>
+                                <input type="text" id="fullNameEn" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Birth Date</label>
+                                <input type="text" id="birthDate" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Gender</label>
+                                <input type="text" id="gender" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Address</label>
+                                <input type="text" id="address" maxlength="2048" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Issue Date</label>
+                                <input type="text" id="issueDate" readonly>
+                            </div>
+                            <div class="input-field">
+                                <label>Expiry Date No.</label>
+                                <input type="text" id="expiryDate" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const cropCanvas = document.getElementById('cropCanvas');
+        const ctx = canvas.getContext('2d');
+        const cropCtx = cropCanvas.getContext('2d');
+        let scanning = false;
+        let cameraOpen = false;
+        let mediaStream = null;
+
+        function startCamera() {
+            document.getElementById("passportForm").style.display = 'none';
+            document.getElementById("videoContainer").style.display = 'block';
+            cameraOpen = true;
+            if (cameraOpen) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(stream => {
+                    mediaStream = stream;
+                    video.srcObject = stream;
+                    video.addEventListener('loadeddata', startAutoScan);
+                })
+                    .catch(err => {
+                        // output.textContent = 'Camera error: ' + err.message;
+                    });
+            }
+        }
+
+        function stopCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                scanning = false;
+                cameraOpen = false;
+                document.getElementById("passportForm").style.display = 'block';
+                document.getElementById("videoContainer").style.display = 'none';
+                // output.textContent = 'Camera stopped.';
+            }
+        }
+
+        function startAutoScan() {
+            if (cameraOpen) {
+                setInterval(
+                    async () => {
+                        if (!cameraOpen) return;
+                        if (scanning) return;
+                        scanning = true;
+
+                        const frame = document.getElementById('mrzFrame');
+                        const videoRect = video.getBoundingClientRect();
+                        const frameRect = frame.getBoundingClientRect();
+
+                        const scaleX = canvas.width / videoRect.width;
+                        const scaleY = canvas.height / videoRect.height;
+
+                        const cropX = (frameRect.left - videoRect.left) * scaleX;
+                        const cropY = (frameRect.top - videoRect.top) * scaleY;
+                        const cropW = frameRect.width * scaleX;
+                        const cropH = frameRect.height * scaleY;
+
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        const imageData = ctx.getImageData(cropX, cropY, cropW, cropH);
+                        cropCanvas.width = cropW;
+                        cropCanvas.height = cropH;
+                        cropCtx.putImageData(imageData, 0, 0);
+                        const croppedBase64 = cropCanvas.toDataURL('image/jpeg');
+                        try {
+                            const response = await fetch("http://192.168.251.30:7121/passport/detectedMrz.json", {
+                                method: 'POST',
+                                headers: {
+                                    "Access-Control-Request-Method": "POST",
+                                    "Origin": "http://localhost",
+                                    "Access-Control-Request-Headers": "Content-Type",
+                                },
+                                body: JSON.stringify({ image: croppedBase64 })
+                            });
+
+                            const result = await response.json();
+                            if (result.mrzDetected) {
+                                document.getElementById("passportNumberControl").value = result.passportNo;
+                                document.getElementById("birthdateControl").value = formatDate(result.birthdate);
+                                document.getElementById("expiryDateControl").value = formatDate(result.expirydate);
+                                stopCamera()
+                            }
+
+                        } catch (err) {
+                            // output.textContent = 'OCR error: ' + err.message;
+                        }
+
+                        scanning = false;
+                    }, 500);
+            }
+        }
+
+        function formatMRZ(text) {
+            const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+            let passportNo;
+            let passportCheck;
+            let birthdate;
+            let birthdateCheck;
+            let expirydate;
+            let expirydateCheck;
+            if (lines.length == 2) {
+                if (lines[1].length >= 30) {
+                    passportNo = lines[1].slice(0, 9);
+                    passportCheck = lines[1][9];
+                    birthdate = checkDateFormat(lines[1].slice(13, 19));
+                    birthdateCheck = lines[1][19];
+                    expirydate = checkDateFormat(lines[1].slice(21, 27));
+                    expirydateCheck = lines[1][27];
+                    //console.log("passport No :" + passportCheck + '\n' + 'birthdate : ' + birthdateCheck + '\n' + 'expiry date : ' + expirydateCheck);
+                    //console.log("passport No :" + passportNo + '\n' + 'birthdate : ' + birthdate + '\n' + 'expiry date : ' + expirydate);
+                }
+            } else if (lines.length == 1) {
+                if (lines[0].length >= 30) {
+                    passportNo = lines[0].slice(0, 9);
+                    passportCheck = lines[0][9];
+                    birthdate = checkDateFormat(lines[0].slice(13, 19));
+                    birthdateCheck = lines[0][19];
+                    expirydate = checkDateFormat(lines[0].slice(21, 27));
+                    expirydateCheck = lines[0][27];
+                    //console.log("passport No :" + passportCheck + '\n' + 'birthdate : ' + birthdateCheck + '\n' + 'expiry date : ' + expirydateCheck);
+                    //console.log("passport No :" + passportNo + '\n' + 'birthdate : ' + birthdate + '\n' + 'expiry date : ' + expirydate);
+                }
+            }
+            if (calculateCheckDigit(passportNo, passportCheck) && calculateCheckDigit(birthdate, birthdateCheck) && calculateCheckDigit(expirydate, expirydateCheck)) {
+                //console.log("MRZ is true");
+                document.getElementById("passportNumberControl").value = passportNo;
+                document.getElementById("birthdateControl").value = formatDate(birthdate);
+                document.getElementById("expiryDateControl").value = formatDate(expirydate);
+                stopCamera();
+                // return passportNo + '\n' + birthdate + '\n' + expirydate;
+            }
+            // return "";
+        }
+
+        function calculateCheckDigit(mrz, check) {
+            const weights = [7, 3, 1];
+            const charValues = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ<";
+            let sum = 0;
+            for (let i = 0; i < mrz.length; i++) {
+                const char = mrz[i];
+                const value = charValues.indexOf(char);
+                if (value === -1) {
+                    throw new Error("Invalid character in MRZ line");
+                }
+                sum += value * weights[i % 3];
+            }
+            sum = sum % 10;
+            return check === sum.toString();
+        }
+
+        function checkDateFormat(date) {
+            return date.replace(/[DOoQ]/g, '0');
+        }
+
+        function formatDate(yymmdd) {
+            if (!/^\d{6}$/.test(yymmdd)) return null; // validate input
+
+            const year = parseInt(yymmdd.slice(0, 2), 10);
+            const month = yymmdd.slice(2, 4);
+            const day = yymmdd.slice(4, 6);
+
+            // Assume year >= 50 is 1900s, otherwise 2000s (adjust as needed)
+            const fullYear = year >= 50 ? 1900 + year : 2000 + year;
+
+            return `${fullYear}-${month}-${day}`;
+        }
+    </script>
+</body>
+
+</html>
